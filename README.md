@@ -14,8 +14,11 @@ This isn't just an inconvenience; it's a gap in the very chain of survival. With
  Our Model AmbuNexus has three Functionalities:
  
 1.Vehicle failure Predictive Maintenance
+
 2.Route optimization for the ambulance
+
 3.patient outcome prediction
+
 -----------------------------------------------------------------------------------------------------------------------------
 Installation and Setup Instructions for "1.Vehicle failure Predictive Maintenance:"
 Here are the instructions to set up the vehicle failure predictive maintenance code.
@@ -68,6 +71,8 @@ Frontend & GUI:HTML,Tailwind CSS,JavaScript,Tkinter,Streamlit,
 
 Cloud & Deployment
 Cloud Healthcare
+<img width="1430" height="830" alt="image" src="https://github.com/user-attachments/assets/117bbe5d-ef1e-4ffb-af33-e4f40991dd43" />
+
 
 YOUTUBE DEMO LINK for Route optimization for the ambulance:https://youtu.be/Km3N6-Srglo
 ----------------------------------------------------------------------------------------------------------------------------
@@ -97,9 +102,13 @@ Python,Pandas,NumPy,Scikit-learn,Joblib
 YOUTUBE DEMO LINK for patient outcome prediction:https://youtu.be/rXwhMDpgHvM?si=D-QMyqg0ezKa3l_x
 ----------------------------------------------------------------------------------------------------------------------------
 Team Members Details:
+
 Team Name: Ambunexus
+
 1.Jeslin Santeena Jeyasuresh
+
 2.Narmadhadevi D
+
 3.Lijo Felix F V
 
 

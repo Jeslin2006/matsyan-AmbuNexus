@@ -1,0 +1,335 @@
+# matsyan-AmbuNexus
+#------------------------------------------------------PATIENT DATASET GENERATION CODE---------------------------------------------------
+#TRAIN RANDOMFOREST MODEL
+import pandas as pd
+import numpy as np
+import random
+import joblib
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+
+# Set seed for reproducibility
+random.seed(42)
+np.random.seed(42)
+
+# Define possible values for categorical fields
+genders = ['Male', 'Female']
+incident_types = ['Cardiac Arrest', 'Trauma', 'Stroke', 'Respiratory Distress', 'Seizure']
+interventions = ['CPR', 'Oxygen', 'IV Fluids', 'Defibrillation', 'None']
+outcomes = ['Stabilized', 'Admitted', 'Deceased']
+# Generate synthetic data
+num_records = 500
+data = []
+
+for i in range(1, num_records + 1):
+    age = np.random.randint(18, 90)
+    gender = random.choice(genders)
+    incident = random.choice(incident_types)
+    heart_rate = np.random.randint(40, 160)
+    blood_pressure = np.random.randint(80, 180)
+    respiratory_rate = np.random.randint(10, 30)
+    oxygen_saturation = np.random.randint(70, 100)
+    time_to_hospital = np.random.randint(5, 60)
+    intervention = random.choice(interventions)
+    outcome = random.choice(outcomes)
+    
+    data.append([
+        f"P{i:04d}", age, gender, incident, heart_rate, blood_pressure,
+        respiratory_rate, oxygen_saturation, time_to_hospital, intervention, outcome
+    ])
+
+# Create DataFrame
+columns = [
+    "Patient ID", "Age", "Gender", "Incident Type", "Heart Rate", "Blood Pressure",
+    "Respiratory Rate", "Oxygen Saturation", "Time to Hospital", "Intervention Given", "Outcome"
+]
+df = pd.DataFrame(data, columns=columns)
+
+# Save to CSV
+df.to_csv("ambulance_patient_data.csv", index=False)
+
+# Prepare data for model training
+df.drop("Patient ID", axis=1, inplace=True)
+df_encoded = pd.get_dummies(df, drop_first=True)
+X = df_encoded.drop(columns=["Outcome_Stabilized"], errors='ignore')
+y = df_encoded["Outcome_Stabilized"]
+
+# Train Random Forest model
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
+
+# Export the trained model
+joblib.dump(model, "ambulance_patient_outcome_model.pkl")
+#--------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+#frontend code:
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ambulance Patient Outcome Predictor</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter for general text, and a more distinct one for headers if desired (keeping Inter for now) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #e0f2fe; /* Light blue background for a fresh feel */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh; /* Ensure it takes full viewport height */
+            padding: 1.5rem; /* Add some padding around the edges */
+        }
+        .container {
+            max-width: 960px; /* Slightly wider container */
+            background-color: #ffffff;
+            padding: 2.5rem; /* More generous padding */
+            border-radius: 1.5rem; /* More rounded corners */
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); /* Stronger shadow */
+            border: 1px solid #e2e8f0; /* Subtle border */
+        }
+        h1 {
+            color: #1a202c; /* Darker heading color */
+            font-weight: 700; /* Bolder heading */
+            margin-bottom: 2.5rem; /* More space below heading */
+        }
+        .input-group label {
+            font-weight: 600; /* Bolder labels */
+            color: #2d3748; /* Darker label color */
+            margin-bottom: 0.5rem; /* More space below labels */
+            display: block; /* Ensure label takes full width */
+        }
+        .input-group input,
+        .input-group select {
+            border: 1px solid #cbd5e0; /* Lighter border */
+            border-radius: 0.75rem; /* More rounded input fields */
+            padding: 0.875rem 1.25rem; /* Slightly more padding */
+            width: 100%;
+            font-size: 1rem;
+            color: #4a5568; /* Darker text in inputs */
+            background-color: #f8fafc; /* Very light background for inputs */
+            transition: all 0.2s ease-in-out; /* Smooth transition for all properties */
+        }
+        .input-group input:focus,
+        .input-group select:focus {
+            outline: none;
+            border-color: #3b82f6; /* blue-500 */
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.25); /* blue-400 with opacity for a softer glow */
+            background-color: #ffffff; /* White background on focus */
+        }
+        .btn-predict {
+            background: linear-gradient(to right, #3b82f6, #2563eb); /* Blue gradient */
+            color: white;
+            padding: 1rem 2.5rem; /* Larger button */
+            border-radius: 0.75rem; /* More rounded button */
+            font-weight: 700; /* Bolder text */
+            font-size: 1.125rem; /* Larger font size */
+            transition: all 0.3s ease-in-out;
+            box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.3), 0 4px 6px -2px rgba(59, 130, 246, 0.1); /* Stronger blue shadow */
+            border: none; /* Remove default border */
+            cursor: pointer;
+        }
+        .btn-predict:hover {
+            background: linear-gradient(to right, #2563eb, #1d4ed8); /* Darker gradient on hover */
+            transform: translateY(-3px); /* More pronounced lift */
+            box-shadow: 0 15px 20px -3px rgba(59, 130, 246, 0.4), 0 6px 8px -2px rgba(59, 130, 246, 0.2);
+        }
+        .btn-predict:active {
+            transform: translateY(0);
+            box-shadow: 0 5px 8px -3px rgba(59, 130, 246, 0.2), 0 2px 4px -2px rgba(59, 130, 246, 0.1);
+        }
+        .result-box {
+            background-color: #e0f2fe; /* Light blue background for result */
+            border: 1px solid #93c5fd; /* Blue border */
+            border-radius: 1rem; /* More rounded */
+            padding: 2rem; /* More padding */
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            margin-top: 2rem; /* Space above result box */
+        }
+        .result-text {
+            font-size: 1.5rem; /* Larger result text */
+            font-weight: 700; /* Bolder */
+            color: #1e40af; /* Darker blue for main result */
+            margin-bottom: 0.75rem;
+        }
+        .result-subtext {
+            font-size: 1.125rem; /* Slightly larger subtext */
+            color: #2b6cb0; /* Medium blue for subtext */
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+    <div class="container bg-white p-8 rounded-xl shadow-lg border border-gray-200">
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-8">Ambulance Patient Outcome Predictor</h1>
+        
+        <form id="predictionForm" class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 mb-8">
+            <!-- Age -->
+            <div class="input-group">
+                <label for="age" class="text-sm">Age:</label>
+                <input type="number" id="age" name="Age" min="18" max="90" required
+                       class="mt-1 block w-full rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
+            </div>
+
+            <!-- Gender -->
+            <div class="input-group">
+                <label for="gender" class="text-sm">Gender:</label>
+                <select id="gender" name="Gender" required
+                        class="mt-1 block w-full rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                    <option value="">Select Gender</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                </select>
+            </div>
+
+            <!-- Incident Type -->
+            <div class="input-group">
+                <label for="incidentType" class="text-sm">Incident Type:</label>
+                <select id="incidentType" name="Incident Type" required
+                        class="mt-1 block w-full rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                    <option value="">Select Incident Type</option>
+                    <option value="Cardiac Arrest">Cardiac Arrest</option>
+                    <option value="Trauma">Trauma</option>
+                    <option value="Stroke">Stroke</option>
+                    <option value="Respiratory Distress">Respiratory Distress</option>
+                    <option value="Seizure">Seizure</option>
+                </select>
+            </div>
+
+            <!-- Heart Rate -->
+            <div class="input-group">
+                <label for="heartRate" class="text-sm">Heart Rate (bpm):</label>
+                <input type="number" id="heartRate" name="Heart Rate" min="40" max="160" required
+                       class="mt-1 block w-full rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
+            </div>
+
+            <!-- Blood Pressure -->
+            <div class="input-group">
+                <label for="bloodPressure" class="text-sm">Blood Pressure (mmHg):</label>
+                <input type="number" id="bloodPressure" name="Blood Pressure" min="80" max="180" required
+                       class="mt-1 block w-full rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
+            </div>
+
+            <!-- Respiratory Rate -->
+            <div class="input-group">
+                <label for="respiratoryRate" class="text-sm">Respiratory Rate (breaths/min):</label>
+                <input type="number" id="respiratoryRate" name="Respiratory Rate" min="10" max="30" required
+                       class="mt-1 block w-full rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
+            </div>
+
+            <!-- Oxygen Saturation -->
+            <div class="input-group">
+                <label for="oxygenSaturation" class="text-sm">Oxygen Saturation (%):</label>
+                <input type="number" id="oxygenSaturation" name="Oxygen Saturation" min="70" max="100" required
+                       class="mt-1 block w-full rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
+            </div>
+
+            <!-- Time to Hospital -->
+            <div class="input-group">
+                <label for="timeToHospital" class="text-sm">Time to Hospital (minutes):</label>
+                <input type="number" id="timeToHospital" name="Time to Hospital" min="5" max="60" required
+                       class="mt-1 block w-full rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
+            </div>
+
+            <!-- Intervention Given -->
+            <div class="input-group md:col-span-2">
+                <label for="interventionGiven" class="text-sm">Intervention Given:</label>
+                <select id="interventionGiven" name="Intervention Given" required
+                        class="mt-1 block w-full rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                    <option value="">Select Intervention</option>
+                    <option value="CPR">CPR</option>
+                    <option value="Oxygen">Oxygen</option>
+                    <option value="IV Fluids">IV Fluids</option>
+                    <option value="Defibrillation">Defibrillation</option>
+                    <option value="None">None</option>
+                </select>
+            </div>
+
+            <div class="md:col-span-2 flex justify-center mt-4">
+                <button type="submit" class="btn-predict">Predict Outcome</button>
+            </div>
+        </form>
+
+        <div id="predictionResult" class="result-box text-center hidden">
+            <p class="result-text mb-2">Prediction: <span id="outcomeText"></span></p>
+            <p class="result-subtext">Probability of Stabilized: <span id="stabilizedProb"></span></p>
+            <p class="result-subtext">Probability of Not Stabilized: <span id="notStabilizedProb"></span></p>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('predictionForm').addEventListener('submit', async function(event) {
+            event.preventDefault(); // Prevent default form submission
+
+            const form = event.target;
+            const formData = new FormData(form);
+            const data = {};
+            for (let [key, value] of formData.entries()) {
+                // Convert numeric fields to numbers
+                if (['Age', 'Heart Rate', 'Blood Pressure', 'Respiratory Rate', 'Oxygen Saturation', 'Time to Hospital'].includes(key)) {
+                    data[key] = parseFloat(value);
+                } else {
+                    data[key] = value;
+                }
+            }
+
+            console.log("Data to send to backend:", data);
+
+            // --- IMPORTANT: This is where you would make an API call to your backend ---
+            // Example using fetch API (replace with your actual backend endpoint)
+            const backendUrl = 'http://your-backend-api.com/predict'; // <<< REPLACE THIS WITH YOUR ACTUAL BACKEND URL
+
+            document.getElementById('outcomeText').textContent = 'Predicting...';
+            document.getElementById('stabilizedProb').textContent = '';
+            document.getElementById('notStabilizedProb').textContent = '';
+            document.getElementById('predictionResult').classList.remove('hidden');
+
+            try {
+                // This is a placeholder for the actual fetch call.
+                // In a real application, your backend would receive 'data',
+                // preprocess it (one-hot encode categorical features, ensure column order),
+                // make a prediction using the .pkl model, and return the result.
+                
+                // Simulating a network delay and a response from the backend
+                const response = await new Promise(resolve => setTimeout(() => {
+                    // Simulate a prediction result
+                    const simulatedPrediction = Math.random() > 0.5 ? 1 : 0; // 1 for Stabilized, 0 for Not Stabilized
+                    const probStabilized = simulatedPrediction === 1 ? (0.7 + Math.random() * 0.2).toFixed(2) : (0.1 + Math.random() * 0.2).toFixed(2);
+                    const probNotStabilized = (1 - parseFloat(probStabilized)).toFixed(2);
+
+                    resolve({
+                        ok: true,
+                        json: () => Promise.resolve({
+                            prediction: simulatedPrediction,
+                            probability_stabilized: parseFloat(probStabilized),
+                            probability_not_stabilized: parseFloat(probNotStabilized)
+                        })
+                    });
+                }, 1500)); // Simulate 1.5 second delay
+
+                if (response.ok) {
+                    const result = await response.json();
+                    const outcome = result.prediction === 1 ? 'Stabilized' : 'Not Stabilized';
+                    document.getElementById('outcomeText').textContent = outcome;
+                    document.getElementById('stabilizedProb').textContent = `${(result.probability_stabilized * 100).toFixed(2)}%`;
+                    document.getElementById('notStabilizedProb').textContent = `${(result.probability_not_stabilized * 100).toFixed(2)}%`;
+                } else {
+                    console.error('Error from backend:', response.statusText);
+                    document.getElementById('outcomeText').textContent = 'Error: Could not get prediction.';
+                    document.getElementById('stabilizedProb').textContent = '';
+                    document.getElementById('notStabilizedProb').textContent = '';
+                }
+            } catch (error) {
+                console.error('Network or parsing error:', error);
+                document.getElementById('outcomeText').textContent = 'Error: Failed to connect to backend.';
+                document.getElementById('stabilizedProb').textContent = '';
+                document.getElementById('notStabilizedProb').textContent = '';
+            }
+        });
+    </script>
+</body>
+</html>

@@ -11,3 +11,42 @@ Imagine a high-stakes, life-or-death emergency unfolding in real-time. Your very
 This isn't just an inconvenience; it's a gap in the very chain of survival. Without a solution to these life-threatening delays and coordination failures, emergency services are critically compromised, and patient outcomes are left entirely to chance. The ability to predict a breakdown, bypass traffic, and prepare a hospital is not a luxury—it is the difference between life and death.
 
 
+ Our Model AmbuNexus has three Functionalities:
+1.Vehicle failure Predictive Maintenance
+2.Route optimization for the ambulance
+3.patient outcome prediction
+
+Installation and Setup Instructions for "1.Vehicle failure Predictive Maintenance:"
+
+
+
+
+
+Installation and Setup Instructions for "3.patient outcome prediction"
+Step 1: Save the Code Files
+Save the Python code provided into a file named train_model.py.
+Save the HTML code provided into a file named index.html.
+
+Step 2: Set Up the Python Backend
+First, install the necessary Python libraries by running the following command in your terminal:
+Bash
+pip install pandas numpy scikit-learn joblib
+Next, execute the Python script to generate the synthetic data and train the model:
+Bash
+python train_model.py
+This command will create two new files: ambulance_patient_data.csv and ambulance_patient_outcome_model.pkl.
+
+Step 3: Launch the Web Frontend
+Simply open the index.html file in any web browser to run the application.
+
+TECH STACKS:
+Frontend:
+HTML,Tailwind CSS,JavaScript
+Backend & Data Science:
+Python,Pandas,NumPy,Scikit-learn,Joblib
+YOUTUBE DEMO LINK for patient outcome prediction:
+
+
+
+
+

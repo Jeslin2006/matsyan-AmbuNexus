@@ -1,0 +1,871 @@
+#-----------------------------------------Vehicle failure predictive maintainence---------------------------------------
+#This python code generates a synthetic dataset for predicting vehicle failure
+import pandas as pd
+import numpy as np
+from datetime import datetime, timedelta
+
+def generate_synthetic_ambulance_data(num_vehicles=100, num_days=365, freq='H'):
+    """
+    Generates synthetic ambulance vehicle data for predictive maintenance.
+
+    Args:
+        num_vehicles (int): Number of unique ambulance vehicles.
+        num_days (int): Number of days to simulate data for.
+        freq (str): Frequency of data collection (e.g., 'H' for hourly, 'D' for daily).
+
+    Returns:
+        pd.DataFrame: A DataFrame with synthetic vehicle data.
+    """
+    all_data = []
+    # Use current year for data generation
+    current_year = datetime.now().year # Dynamically gets the current year
+    start_date = datetime(current_year, 1, 1) # Sets the start date to Jan 1 of the current year
+
+    for i in range(1, num_vehicles + 1):
+        vehicle_id = f'AMB{i:03d}' # Generates vehicle IDs like AMB001, AMB002
+        current_mileage = np.random.randint(50000, 150000) # Random initial mileage
+        last_maintenance_mileage = current_mileage - np.random.randint(5000, 15000) # Mileage when last serviced
+
+        for day in range(num_days):
+            current_date = start_date + timedelta(days=day) # Iterates through each day
+            
+            daily_operational_hours = np.random.uniform(8, 20) # Simulate 8-20 hours of operation per day
+            
+            if freq == 'H': # If hourly frequency
+                time_points_per_day = int(daily_operational_hours) # Number of data points for the day
+                # Randomly select 'time_points_per_day' hours within 24 and sort them
+                chosen_hours = [int(h) for h in np.sort(np.random.choice(24, time_points_per_day, replace=False))]
+                time_deltas = [timedelta(hours=h) for h in chosen_hours]
+            elif freq == 'D': # If daily frequency
+                time_points_per_day = 1
+                time_deltas = [timedelta(hours=int(np.random.randint(0,23)))] # One arbitrary time point per day
+            else:
+                raise ValueError("Unsupported frequency. Use 'H' for hourly or 'D' for daily.")
+
+            for delta in time_deltas: # For each simulated reading within the day
+                timestamp = current_date + delta # Exact timestamp of the reading
+                
+                mileage_increase = np.random.uniform(5, 50) # Miles driven since last reading
+                current_mileage += mileage_increase # Update total mileage
+                miles_since_last_maintenance = current_mileage - last_maintenance_mileage # Calculate miles since last service
+
+                # Sensor data generation:
+                # Normal distribution with slight degradation/increase based on miles_since_last_maintenance
+                engine_temp = np.random.normal(90, 2) + (miles_since_last_maintenance / 20000) * 5
+                oil_pressure = np.random.normal(45, 1) - (miles_since_last_maintenance / 20000) * 2
+                battery_voltage = np.random.normal(12.6, 0.1)
+                
+                tire_pressure_fl = np.random.normal(35, 0.5) - (miles_since_last_maintenance / 30000) * np.random.uniform(0, 1)
+                tire_pressure_fr = np.random.normal(35, 0.5) - (miles_since_last_maintenance / 30000) * np.random.uniform(0, 1)
+                tire_pressure_rl = np.random.normal(35, 0.5) - (miles_since_last_maintenance / 30000) * np.random.uniform(0, 1)
+                tire_pressure_rr = np.random.normal(35, 0.5) - (miles_since_last_maintenance / 30000) * np.random.uniform(0, 1)
+
+                # Brake pad wear simulates a cycle (e.g., pads replaced every 40k/50k miles)
+                brake_pad_wear_front = (miles_since_last_maintenance % 40000) / 40000
+                brake_pad_wear_rear = (miles_since_last_maintenance % 50000) / 50000
+
+                engine_rpm = np.random.normal(1500, 200)
+                vibration_level = np.random.normal(0.5, 0.1) + (miles_since_last_maintenance / 25000) * 0.3
+
+                fault_code = 'None'
+                condition = 'Normal'
+
+                # Introduce anomalies and set "Needs Maintenance" condition:
+                # 1. Overdue maintenance based on mileage
+                if miles_since_last_maintenance > 15000 and np.random.rand() < 0.05:
+                    condition = 'Needs Maintenance'
+                
+                # 2. Sensor readings exceeding thresholds (with a probability)
+                if engine_temp > 105 and np.random.rand() < 0.7:
+                    condition = 'Needs Maintenance'
+                    fault_code = 'P0217_Engine_Overheat'
+                if oil_pressure < 35 and np.random.rand() < 0.7:
+                    condition = 'Needs Maintenance'
+                    fault_code = 'P0521_Oil_Pressure_Low'
+                if battery_voltage < 12.0 and np.random.rand() < 0.7:
+                    condition = 'Needs Maintenance'
+                    fault_code = 'P0562_Battery_Low_Voltage'
+                if (tire_pressure_fl < 30 or tire_pressure_fr < 30 or tire_pressure_rl < 30 or tire_pressure_rr < 30) and np.random.rand() < 0.7:
+                    condition = 'Needs Maintenance'
+                    fault_code = 'C0051_Tire_Pressure_Low'
+                if brake_pad_wear_front > 0.9 or brake_pad_wear_rear > 0.9:
+                    condition = 'Needs Maintenance'
+                    fault_code = 'C0030_Brake_Wear'
+                if vibration_level > 1.2 and np.random.rand() < 0.7:
+                    condition = 'Needs Maintenance'
+                    fault_code = 'P0300_Engine_Vibration'
+                
+                # 3. Simulate random, intermittent fault codes
+                if np.random.rand() < 0.001:
+                    possible_faults = ['P0171_Fuel_System_Lean', 'P0420_Catalyst_Efficiency', 'P0301_Cylinder_1_Misfire']
+                    fault_code = np.random.choice(possible_faults)
+                    condition = 'Needs Maintenance' if np.random.rand() < 0.8 else condition
+
+                # Simulate a repair/maintenance event:
+                # If a vehicle needs maintenance, there's a small chance it gets fixed
+                if condition == 'Needs Maintenance' and np.random.rand() < 0.05:
+                    if fault_code != 'None':
+                        last_maintenance_mileage = current_mileage # Reset maintenance counter
+                        condition = 'Normal'
+                        fault_code = 'None' # Clear fault code
+
+                # Append all generated data for this timestamp to the list
+                all_data.append({
+                    'timestamp': timestamp,
+                    'vehicle_id': vehicle_id,
+                    'mileage': current_mileage,
+                    'last_maintenance_miles': miles_since_last_maintenance,
+                    'engine_temp_avg': engine_temp,
+                    'oil_pressure_avg': oil_pressure,
+                    'battery_voltage_avg': battery_voltage,
+                    'tire_pressure_fl': tire_pressure_fl,
+                    'tire_pressure_fr': tire_pressure_fr,
+                    'tire_pressure_rl': tire_pressure_rl,
+                    'tire_pressure_rr': tire_pressure_rr,
+                    'brake_pad_wear_front': brake_pad_wear_front,
+                    'brake_pad_wear_rear': brake_pad_wear_rear,
+                    'engine_rpm': engine_rpm,
+                    'vibration_level': vibration_level,
+                    'fault_code': fault_code,
+                    'condition': condition
+                })
+
+    # Convert the list of dictionaries to a pandas DataFrame
+    df = pd.DataFrame(all_data)
+    # Sort the data by vehicle and then by timestamp for time-series operations
+    df = df.sort_values(by=['vehicle_id', 'timestamp']).reset_index(drop=True)
+    return df
+
+# Main execution for data generation and saving
+synthetic_df = generate_synthetic_ambulance_data(num_vehicles=100, num_days=365, freq='H')
+print(synthetic_df.head())
+print(synthetic_df['condition'].value_counts())
+print(synthetic_df.info())
+
+synthetic_df.to_csv('synthetic_ambulance_data.csv', index=False) # Save the generated data
+
+  #-------------------------------------------------------------------------------------
+  
+#python code for training the randomforestclassifier model
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
+import matplotlib.pyplot as plt
+import seaborn as sns
+import pickle # Used for saving/loading models
+
+# Load the synthetic dataset
+try:
+    df = pd.read_csv('synthetic_ambulance_data.csv')
+except FileNotFoundError:
+    print("synthetic_ambulance_data.csv not found. Please run the data generation code first.")
+    exit()
+
+# --- 1. Data Preprocessing ---
+
+# Convert timestamp to datetime objects for easy feature extraction
+df['timestamp'] = pd.to_datetime(df['timestamp'])
+
+# Feature Engineering: Creating new predictive features
+# Time-based features: captures patterns related to time of day, week, or month
+df['hour_of_day'] = df['timestamp'].dt.hour
+df['day_of_week'] = df['timestamp'].dt.dayofweek
+df['month'] = df['timestamp'].dt.month
+
+# Lagged features: captures trends by looking at previous sensor readings for each vehicle
+df = df.sort_values(by=['vehicle_id', 'timestamp']) # Ensure data is sorted for correct lagging
+
+df['engine_temp_avg_lag1'] = df.groupby('vehicle_id')['engine_temp_avg'].shift(1)
+df['oil_pressure_avg_lag1'] = df.groupby('vehicle_id')['oil_pressure_avg'].shift(1)
+df['vibration_level_lag1'] = df.groupby('vehicle_id')['vibration_level'].shift(1)
+
+# Handle NaN values created by shift (first entry for each vehicle)
+df.fillna(method='bfill', inplace=True) # Fill with next valid observation
+df.fillna(method='ffill', inplace=True) # Fill with previous valid observation (catches any remaining)
+
+# Encode categorical features:
+# One-hot encode 'fault_code' as it's a nominal (unordered) categorical variable.
+# Creates new binary columns (e.g., 'fault_P0217_Engine_Overheat')
+df = pd.get_dummies(df, columns=['fault_code'], prefix='fault')
+
+# Drop 'vehicle_id' as its individual ID isn't a direct predictive feature after engineering time-series features.
+# If vehicle-specific characteristics were explicitly important (e.g., vehicle model, age), they'd be added.
+df = df.drop('vehicle_id', axis=1)
+
+# Encode the target variable 'condition' ('Normal'/'Needs Maintenance') into numerical labels (0/1)
+le = LabelEncoder()
+df['condition_encoded'] = le.fit_transform(df['condition']) # E.g., 'Normal' -> 0, 'Needs Maintenance' -> 1
+
+print(f"Condition mapping: {list(le.classes_)} -> {list(le.transform(le.classes_))}") # Show the mapping
+
+# Drop original 'condition' (text) and 'timestamp' (already extracted features) columns
+df = df.drop(['condition', 'timestamp'], axis=1)
+
+# Define features (X) and target (y)
+X = df.drop('condition_encoded', axis=1) # All columns except the target
+y = df['condition_encoded'] # The target variable
+
+# Scale numerical features using StandardScaler:
+# Transforms data to have a mean of 0 and standard deviation of 1.
+# Prevents features with larger magnitudes from dominating the model.
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+X_scaled_df = pd.DataFrame(X_scaled, columns=X.columns) # Convert back to DataFrame for clarity
+
+# --- 2. Model Training ---
+
+# Split data into training and testing sets (80% train, 20% test)
+# stratify=y ensures that the proportion of 'Normal' vs 'Needs Maintenance' is maintained in both sets.
+X_train, X_test, y_train, y_test = train_test_split(X_scaled_df, y, test_size=0.2, random_state=42, stratify=y)
+
+print(f"\nTrain set shape: {X_train.shape}")
+print(f"Test set shape: {X_test.shape}")
+print(f"Train target distribution:\n{y_train.value_counts(normalize=True)}")
+print(f"Test target distribution:\n{y_test.value_counts(normalize=True)}")
+
+# Initialize and train a RandomForestClassifier model:
+# n_estimators=100: Number of decision trees in the forest.
+# random_state=42: For reproducibility of results.
+# class_weight='balanced': Important for imbalanced datasets (more 'Normal' than 'Needs Maintenance').
+# It penalizes misclassifications of the minority class more heavily.
+model = RandomForestClassifier(n_estimators=100, random_state=42, class_weight='balanced')
+model.fit(X_train, y_train) # Train the model on the training data
+
+# --- 3. Model Evaluation ---
+
+# Make predictions on the unseen test set
+y_pred = model.predict(X_test)
+
+print("\n--- Model Evaluation ---")
+print("Accuracy:", accuracy_score(y_test, y_pred)) # Overall correct predictions
+print("\nConfusion Matrix:\n", confusion_matrix(y_test, y_pred)) # Breakdown of True/False Positives/Negatives
+print("\nClassification Report:\n", classification_report(y_test, y_pred, target_names=le.classes_)) # Precision, Recall, F1-score per class
+
+# Feature Importance: Shows which features the model found most influential in making predictions
+importances = model.feature_importances_
+feature_names = X.columns
+forest_importances = pd.Series(importances, index=feature_names).sort_values(ascending=False)
+
+fig, ax = plt.subplots(figsize=(10, 6))
+forest_importances.head(15).plot.bar() # Plot top 15 features
+ax.set_title("Top 15 Feature Importances")
+ax.set_ylabel("Mean decrease in impurity")
+plt.tight_layout()
+plt.show()
+
+# --- Saving the Model and Preprocessing Tools ---
+# Essential for deploying the model without retraining every time
+
+model_filename = 'ambulance_condition_model.pkl'
+scaler_filename = 'ambulance_condition_scaler.pkl'
+label_encoder_filename = 'ambulance_condition_label_encoder.pkl'
+feature_columns_filename = 'ambulance_condition_feature_columns.pkl' # To preserve feature order
+
+with open(model_filename, 'wb') as file: # 'wb' for write binary mode
+    pickle.dump(model, file)
+print(f"Model saved as {model_filename}")
+
+with open(scaler_filename, 'wb') as file:
+    pickle.dump(scaler, file)
+print(f"Scaler saved as {scaler_filename}")
+
+with open(label_encoder_filename, 'wb') as file:
+    pickle.dump(le, file)
+print(f"LabelEncoder saved as {label_encoder_filename}")
+
+with open(feature_columns_filename, 'wb') as file:
+    pickle.dump(X.columns.tolist(), file) # Save the list of feature column names
+print(f"Feature column names saved as {feature_columns_filename}")
+
+
+# --- 4. Prediction on New Data (Example) ---
+# Demonstrates how to use the saved components to predict a single new data point
+
+# Hypothetical new real-time sensor data
+new_data_point = pd.DataFrame([{
+    'mileage': 110000,
+    'last_maintenance_miles': 16000,
+    'engine_temp_avg': 100,
+    'oil_pressure_avg': 38,
+    'battery_voltage_avg': 12.1,
+    'tire_pressure_fl': 32,
+    'tire_pressure_fr': 33,
+    'tire_pressure_rl': 34,
+    'tire_pressure_rr': 33,
+    'brake_pad_wear_front': 0.85,
+    'brake_pad_wear_rear': 0.75,
+    'engine_rpm': 2200,
+    'vibration_level': 1.1,
+    'hour_of_day': 10,
+    'day_of_week': 3, # Wednesday
+    'month': 7, # July
+    'engine_temp_avg_lag1': 98, # Previous reading from the same vehicle
+    'oil_pressure_avg_lag1': 39,
+    'vibration_level_lag1': 1.05
+}])
+
+# Load the feature column names used during training to ensure consistent order
+loaded_feature_columns = pickle.load(open(feature_columns_filename, 'rb'))
+
+# Add all possible 'fault_' columns from the training data, initialized to 0
+for col in [c for c in loaded_feature_columns if c.startswith('fault_')]:
+    new_data_point[col] = 0
+
+# If a specific fault code is present in the new data, set its column to 1
+# This example assumes 'P0521_Oil_Pressure_Low' is detected
+if 'fault_P0521_Oil_Pressure_Low' in new_data_point.columns:
+    new_data_point['fault_P0521_Oil_Pressure_Low'] = 1
+else:
+    # Handle cases where a fault code in new data was NOT seen in training data
+    print("Warning: 'fault_P0521_Oil_Pressure_Low' not seen in training data (or feature columns). Adding as 0.")
+    new_data_point['fault_P0521_Oil_Pressure_Low'] = 0
+
+# Ensure all columns from the training set are present in the new data point, filling missing with 0
+missing_cols = set(loaded_feature_columns) - set(new_data_point.columns)
+for c in missing_cols:
+    new_data_point[c] = 0
+# Reorder columns to match the training data's feature order
+new_data_point = new_data_point[loaded_feature_columns]
+
+# Scale the new data point using the *same scaler* that was fitted on the training data
+new_data_point_scaled = scaler.transform(new_data_point)
+
+# Predict the condition using the trained model
+predicted_condition_proba = model.predict_proba(new_data_point_scaled)[:, 1] # Probability of 'Needs Maintenance'
+predicted_condition_label = le.inverse_transform(model.predict(new_data_point_scaled)) # Convert numerical prediction back to text
+
+print(f"\n--- Prediction for a New Data Point ---")
+print(f"Predicted probability of 'Needs Maintenance': {predicted_condition_proba[0]:.4f}")
+print(f"Predicted condition: {predicted_condition_label[0]}")
+
+
+  #--------------------------------------------------------------------------------------------------------
+
+import pickle
+import pandas as pd # Needed for DataFrame creation
+
+# Load the saved model, scaler, and label encoder
+with open('ambulance_condition_model.pkl', 'rb') as file:
+    loaded_model = pickle.load(file)
+
+with open('ambulance_condition_scaler.pkl', 'rb') as file:
+    loaded_scaler = pickle.load(file)
+
+with open('ambulance_condition_label_encoder.pkl', 'rb') as file:
+    loaded_label_encoder = pickle.load(file)
+
+with open('ambulance_condition_feature_columns.pkl', 'rb') as file:
+    loaded_feature_columns = pickle.load(file)
+
+print("Model, scaler, label encoder, and feature columns loaded successfully.")
+
+# Now you can use them for new predictions
+# Example new data (must be preprocessed the same way)
+new_data_point_loaded = pd.DataFrame([{
+    'mileage': 110000,
+    'last_maintenance_miles': 16000,
+    'engine_temp_avg': 100,
+    'oil_pressure_avg': 38,
+    'battery_voltage_avg': 12.1,
+    'tire_pressure_fl': 32,
+    'tire_pressure_fr': 33,
+    'tire_pressure_rl': 34,
+    'tire_pressure_rr': 33,
+    'brake_pad_wear_front': 0.85,
+    'brake_pad_wear_rear': 0.75,
+    'engine_rpm': 2200,
+    'vibration_level': 1.1,
+    'hour_of_day': 10,
+    'day_of_week': 3, # Wednesday
+    'month': 7, # July
+    'engine_temp_avg_lag1': 98, # From previous reading
+    'oil_pressure_avg_lag1': 39,
+    'vibration_level_lag1': 1.05
+}])
+
+# Add fault code columns and set the relevant one to 1, others to 0
+for col in [c for c in loaded_feature_columns if c.startswith('fault_')]:
+    new_data_point_loaded[col] = 0
+
+if 'fault_P0521_Oil_Pressure_Low' in new_data_point_loaded.columns:
+    new_data_point_loaded['fault_P0521_Oil_Pressure_Low'] = 1
+else:
+    print("Warning: 'fault_P0521_Oil_Pressure_Low' not found in loaded feature columns. Adding with 0.")
+    new_data_point_loaded['fault_P0521_Oil_Pressure_Low'] = 0
+
+
+# Ensure all columns from loaded feature columns are present in new_data_point_loaded, even if 0
+missing_cols_loaded = set(loaded_feature_columns) - set(new_data_point_loaded.columns)
+for c in missing_cols_loaded:
+    new_data_point_loaded[c] = 0
+new_data_point_loaded = new_data_point_loaded[loaded_feature_columns] # Ensure column order is the same
+
+# Scale the new data point
+new_data_point_scaled_loaded = loaded_scaler.transform(new_data_point_loaded)
+
+# Predict
+predicted_condition_label_loaded = loaded_label_encoder.inverse_transform(loaded_model.predict(new_data_point_scaled_loaded))
+predicted_condition_proba_loaded = loaded_model.predict_proba(new_data_point_scaled_loaded)[:, 1]
+
+print(f"\n--- Prediction using Loaded Model ---")
+print(f"Predicted probability of 'Needs Maintenance': {predicted_condition_proba_loaded[0]:.4f}")
+print(f"Predicted condition: {predicted_condition_label_loaded[0]}")
+
+#----------------------------------------------------------------------------------------------------
+#frontend developed using Tkinter
+import tkinter as tk
+from tkinter import messagebox, scrolledtext, ttk
+import pandas as pd
+import numpy as np
+from datetime import datetime, timedelta
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
+import pickle
+import os # For file operations
+
+# --- Data Generation Function (as provided previously, with slight adjustment) ---
+def generate_synthetic_ambulance_data(num_vehicles=100, num_days=365, freq='H'):
+    all_data = []
+    current_year = datetime.now().year
+    start_date = datetime(current_year, 1, 1)
+
+    for i in range(1, num_vehicles + 1):
+        vehicle_id = f'AMB{i:03d}'
+        current_mileage = np.random.randint(50000, 150000)
+        last_maintenance_mileage = current_mileage - np.random.randint(5000, 15000)
+
+        for day in range(num_days):
+            current_date = start_date + timedelta(days=day)
+            daily_operational_hours = np.random.uniform(8, 20)
+
+            if freq == 'H':
+                time_points_per_day = int(daily_operational_hours)
+                chosen_hours = [int(h) for h in np.sort(np.random.choice(24, time_points_per_per_day, replace=False))]
+                time_deltas = [timedelta(hours=h) for h in chosen_hours]
+            elif freq == 'D':
+                time_points_per_day = 1
+                time_deltas = [timedelta(hours=int(np.random.randint(0,23)))]
+            else:
+                raise ValueError("Unsupported frequency. Use 'H' for hourly or 'D' for daily.")
+
+            for delta in time_deltas:
+                timestamp = current_date + delta
+                mileage_increase = np.random.uniform(5, 50)
+                current_mileage += mileage_increase
+                miles_since_last_maintenance = current_mileage - last_mileage_maintenance
+
+                engine_temp = np.random.normal(90, 2) + (miles_since_last_maintenance / 20000) * 5
+                oil_pressure = np.random.normal(45, 1) - (miles_since_last_maintenance / 20000) * 2
+                battery_voltage = np.random.normal(12.6, 0.1)
+
+                tire_pressure_fl = np.random.normal(35, 0.5) - (miles_since_last_maintenance / 30000) * np.random.uniform(0, 1)
+                tire_pressure_fr = np.random.normal(35, 0.5) - (miles_since_last_maintenance / 30000) * np.random.uniform(0, 1)
+                tire_pressure_rl = np.random.normal(35, 0.5) - (miles_since_last_maintenance / 30000) * np.random.uniform(0, 1)
+                tire_pressure_rr = np.random.normal(35, 0.5) - (miles_since_last_maintenance / 30000) * np.random.uniform(0, 1)
+
+                brake_pad_wear_front = (miles_since_last_maintenance % 40000) / 40000
+                brake_pad_wear_rear = (miles_since_last_maintenance % 50000) / 50000
+
+                engine_rpm = np.random.normal(1500, 200)
+                vibration_level = np.random.normal(0.5, 0.1) + (miles_since_last_maintenance / 25000) * 0.3
+
+                fault_code = 'None'
+                condition = 'Normal'
+
+                if miles_since_last_maintenance > 15000 and np.random.rand() < 0.05:
+                    condition = 'Needs Maintenance'
+
+                if engine_temp > 105 and np.random.rand() < 0.7:
+                    condition = 'Needs Maintenance'
+                    fault_code = 'P0217_Engine_Overheat'
+                if oil_pressure < 35 and np.random.rand() < 0.7:
+                    condition = 'Needs Maintenance'
+                    fault_code = 'P0521_Oil_Pressure_Low'
+                if battery_voltage < 12.0 and np.random.rand() < 0.7:
+                    condition = 'Needs Maintenance'
+                    fault_code = 'P0562_Battery_Low_Voltage'
+                if (tire_pressure_fl < 30 or tire_pressure_fr < 30 or tire_pressure_rl < 30 or tire_pressure_rr < 30) and np.random.rand() < 0.7:
+                    condition = 'Needs Maintenance'
+                    fault_code = 'C0051_Tire_Pressure_Low'
+                if brake_pad_wear_front > 0.9 or brake_pad_wear_rear > 0.9:
+                    condition = 'Needs Maintenance'
+                    fault_code = 'C0030_Brake_Wear'
+                if vibration_level > 1.2 and np.random.rand() < 0.7:
+                    condition = 'Needs Maintenance'
+                    fault_code = 'P0300_Engine_Vibration'
+
+                if np.random.rand() < 0.001:
+                    possible_faults = ['P0171_Fuel_System_Lean', 'P0420_Catalyst_Efficiency', 'P0301_Cylinder_1_Misfire']
+                    fault_code = np.random.choice(possible_faults)
+                    condition = 'Needs Maintenance' if np.random.rand() < 0.8 else condition
+
+                if condition == 'Needs Maintenance' and np.random.rand() < 0.05:
+                    if fault_code != 'None':
+                        last_maintenance_mileage = current_mileage
+                        condition = 'Normal'
+                        fault_code = 'None'
+
+                all_data.append({
+                    'timestamp': timestamp,
+                    'vehicle_id': vehicle_id,
+                    'mileage': current_mileage,
+                    'last_maintenance_miles': miles_since_last_maintenance,
+                    'engine_temp_avg': engine_temp,
+                    'oil_pressure_avg': oil_pressure,
+                    'battery_voltage_avg': battery_voltage,
+                    'tire_pressure_fl': tire_pressure_fl,
+                    'tire_pressure_fr': tire_pressure_fr,
+                    'tire_pressure_rl': tire_pressure_rl,
+                    'tire_pressure_rr': tire_pressure_rr,
+                    'brake_pad_wear_front': brake_pad_wear_front,
+                    'brake_pad_wear_rear': brake_pad_wear_rear,
+                    'engine_rpm': engine_rpm,
+                    'vibration_level': vibration_level,
+                    'fault_code': fault_code,
+                    'condition': condition
+                })
+
+    df = pd.DataFrame(all_data)
+    df = df.sort_values(by=['vehicle_id', 'timestamp']).reset_index(drop=True)
+    return df
+
+# --- Global variables to store trained model and preprocessors ---
+model = None
+scaler = None
+label_encoder = None
+feature_columns = None
+FAULT_CODES = ['None', 'P0217_Engine_Overheat', 'P0521_Oil_Pressure_Low',
+               'P0562_Battery_Low_Voltage', 'C0051_Tire_Pressure_Low',
+               'C0030_Brake_Wear', 'P0300_Engine_Vibration',
+               'P0171_Fuel_System_Lean', 'P0420_Catalyst_Efficiency',
+               'P0301_Cylinder_1_Misfire'] # All possible fault codes from data generation
+
+# --- Helper function for logging output to GUI ---
+def log_output(text):
+    output_text.insert(tk.END, text + "\n")
+    output_text.see(tk.END) # Auto-scroll to the end
+
+# --- Function to handle data generation button click ---
+def generate_data():
+    log_output("Generating synthetic ambulance data...")
+    try:
+        global synthetic_df # Make it global to be accessible for training
+        synthetic_df = generate_synthetic_ambulance_data(num_vehicles=100, num_days=365, freq='H')
+        synthetic_df.to_csv('synthetic_ambulance_data.csv', index=False)
+        log_output(f"Synthetic data generated and saved to synthetic_ambulance_data.csv (Shape: {synthetic_df.shape})")
+        log_output(f"Condition distribution:\n{synthetic_df['condition'].value_counts()}")
+        messagebox.showinfo("Success", "Synthetic data generated successfully!")
+    except Exception as e:
+        log_output(f"Error during data generation: {e}")
+        messagebox.showerror("Error", f"Failed to generate data: {e}")
+
+# --- Function to handle model training button click ---
+def train_model():
+    log_output("Starting model training process...")
+    global model, scaler, label_encoder, feature_columns
+
+    try:
+        if not os.path.exists('synthetic_ambulance_data.csv'):
+            messagebox.showwarning("File Missing", "synthetic_ambulance_data.csv not found. Please generate data first.")
+            log_output("Error: Data file not found for training.")
+            return
+
+        df = pd.read_csv('synthetic_ambulance_data.csv')
+        log_output("Data loaded successfully.")
+
+        # Preprocessing steps (mirroring the original script)
+        df['timestamp'] = pd.to_datetime(df['timestamp'])
+        df['hour_of_day'] = df['timestamp'].dt.hour
+        df['day_of_week'] = df['timestamp'].dt.dayofweek
+        df['month'] = df['timestamp'].dt.month
+
+        df = df.sort_values(by=['vehicle_id', 'timestamp'])
+        df['engine_temp_avg_lag1'] = df.groupby('vehicle_id')['engine_temp_avg'].shift(1)
+        df['oil_pressure_avg_lag1'] = df.groupby('vehicle_id')['oil_pressure_avg'].shift(1)
+        df['vibration_level_lag1'] = df.groupby('vehicle_id')['vibration_level'].shift(1)
+        df.fillna(method='bfill', inplace=True)
+        df.fillna(method='ffill', inplace=True)
+
+        df = pd.get_dummies(df, columns=['fault_code'], prefix='fault')
+        df = df.drop('vehicle_id', axis=1)
+
+        label_encoder = LabelEncoder()
+        df['condition_encoded'] = label_encoder.fit_transform(df['condition'])
+        log_output(f"Condition mapping: {list(label_encoder.classes_)} -> {list(label_encoder.transform(label_encoder.classes_))}")
+
+        df = df.drop(['condition', 'timestamp'], axis=1)
+
+        X = df.drop('condition_encoded', axis=1)
+        y = df['condition_encoded']
+
+        scaler = StandardScaler()
+        X_scaled = scaler.fit_transform(X)
+        X_scaled_df = pd.DataFrame(X_scaled, columns=X.columns)
+
+        feature_columns = X.columns.tolist() # Save feature column names
+
+        X_train, X_test, y_train, y_test = train_test_split(X_scaled_df, y, test_size=0.2, random_state=42, stratify=y)
+        log_output(f"Data split into train ({X_train.shape}) and test ({X_test.shape}) sets.")
+
+        model = RandomForestClassifier(n_estimators=100, random_state=42, class_weight='balanced')
+        log_output("Training RandomForestClassifier...")
+        model.fit(X_train, y_train)
+        log_output("Model training complete.")
+
+        # Evaluation
+        y_pred = model.predict(X_test)
+        acc = accuracy_score(y_test, y_pred)
+        conf_mat = confusion_matrix(y_test, y_pred)
+        class_rep = classification_report(y_test, y_pred, target_names=label_encoder.classes_)
+
+        log_output(f"\n--- Model Evaluation ---")
+        log_output(f"Accuracy: {acc:.4f}")
+        log_output(f"Confusion Matrix:\n{conf_mat}")
+        log_output(f"Classification Report:\n{class_rep}")
+
+        # Save model and preprocessors
+        with open('ambulance_condition_model.pkl', 'wb') as f: pickle.dump(model, f)
+        with open('ambulance_condition_scaler.pkl', 'wb') as f: pickle.dump(scaler, f)
+        with open('ambulance_condition_label_encoder.pkl', 'wb') as f: pickle.dump(label_encoder, f)
+        with open('ambulance_condition_feature_columns.pkl', 'wb') as f: pickle.dump(feature_columns, f)
+        log_output("Model and preprocessing tools saved successfully.")
+
+        messagebox.showinfo("Success", "Model trained and saved successfully!")
+
+    except Exception as e:
+        log_output(f"Error during model training: {e}")
+        messagebox.showerror("Error", f"Failed to train model: {e}")
+
+# --- Function to make predictions from GUI inputs ---
+def predict_condition():
+    log_output("\nAttempting prediction...")
+    global model, scaler, label_encoder, feature_columns
+
+    # Check if model components are loaded/trained
+    if model is None or scaler is None or label_encoder is None or feature_columns is None:
+        try:
+            with open('ambulance_condition_model.pkl', 'rb') as f: model = pickle.load(f)
+            with open('ambulance_condition_scaler.pkl', 'rb') as f: scaler = pickle.load(f)
+            with open('ambulance_condition_label_encoder.pkl', 'rb') as f: label_encoder = pickle.load(f)
+            with open('ambulance_condition_feature_columns.pkl', 'rb') as f: feature_columns = pickle.load(f)
+            log_output("Loaded model and preprocessing tools from files.")
+        except FileNotFoundError:
+            messagebox.showwarning("Model Not Found", "Model and preprocessors not found. Please train the model first.")
+            log_output("Error: Model files not found for prediction.")
+            return
+        except Exception as e:
+            messagebox.showerror("Error Loading Model", f"Failed to load model components: {e}")
+            log_output(f"Error loading model components: {e}")
+            return
+
+    # Get input values from GUI entry fields
+    try:
+        new_mileage = float(entry_mileage.get())
+        new_last_maintenance_miles = float(entry_last_maintenance_miles.get())
+        new_engine_temp_avg = float(entry_engine_temp_avg.get())
+        new_oil_pressure_avg = float(entry_oil_pressure_avg.get())
+        new_battery_voltage_avg = float(entry_battery_voltage_avg.get())
+        new_tire_pressure_fl = float(entry_tire_pressure_fl.get())
+        new_tire_pressure_fr = float(entry_tire_pressure_fr.get())
+        new_tire_pressure_rl = float(entry_tire_pressure_rl.get())
+        new_tire_pressure_rr = float(entry_tire_pressure_rr.get())
+        new_brake_pad_wear_front = float(entry_brake_pad_wear_front.get())
+        new_brake_pad_wear_rear = float(entry_brake_pad_wear_rear.get())
+        new_engine_rpm = float(entry_engine_rpm.get())
+        new_vibration_level = float(entry_vibration_level.get())
+        new_hour_of_day = int(entry_hour_of_day.get())
+        new_day_of_week = int(entry_day_of_week.get())
+        new_month = int(entry_month.get())
+        new_engine_temp_avg_lag1 = float(entry_engine_temp_avg_lag1.get())
+        new_oil_pressure_avg_lag1 = float(entry_oil_pressure_avg_lag1.get())
+        new_vibration_level_lag1 = float(entry_vibration_level_lag1.get())
+        selected_fault_code = combo_fault_code.get() # Get selected fault code
+
+    except ValueError:
+        messagebox.showerror("Invalid Input", "Please enter valid numerical values for all fields.")
+        log_output("Error: Invalid input for prediction fields.")
+        return
+
+    # Create new data point DataFrame
+    new_data_point = pd.DataFrame([{
+        'mileage': new_mileage,
+        'last_maintenance_miles': new_last_maintenance_miles,
+        'engine_temp_avg': new_engine_temp_avg,
+        'oil_pressure_avg': new_oil_pressure_avg,
+        'battery_voltage_avg': new_battery_voltage_avg,
+        'tire_pressure_fl': new_tire_pressure_fl,
+        'tire_pressure_fr': new_tire_pressure_fr,
+        'tire_pressure_rl': new_tire_pressure_rl,
+        'tire_pressure_rr': new_tire_pressure_rr,
+        'brake_pad_wear_front': new_brake_pad_wear_front,
+        'brake_pad_wear_rear': new_brake_pad_wear_rear,
+        'engine_rpm': new_engine_rpm,
+        'vibration_level': new_vibration_level,
+        'hour_of_day': new_hour_of_day,
+        'day_of_week': new_day_of_week,
+        'month': new_month,
+        'engine_temp_avg_lag1': new_engine_temp_avg_lag1,
+        'oil_pressure_avg_lag1': new_oil_pressure_avg_lag1,
+        'vibration_level_lag1': new_vibration_level_lag1
+    }])
+
+    # Add all fault_code dummy variables, setting current one to 1
+    for col in [c for c in feature_columns if c.startswith('fault_')]:
+        new_data_point[col] = 0
+    
+    if f'fault_{selected_fault_code}' in feature_columns:
+        new_data_point[f'fault_{selected_fault_code}'] = 1
+    elif selected_fault_code != 'None':
+        # This case handles a fault code entered by user that was not in training data.
+        # It's set to 0, or could potentially raise a warning.
+        log_output(f"Warning: Fault code '{selected_fault_code}' not seen in training data. Treating as 'None' (all fault dummies 0).")
+        messagebox.showwarning("Unknown Fault Code", f"Fault code '{selected_fault_code}' was not present in training data. It will be treated as 'None'.")
+
+
+    # Ensure column order matches training data
+    missing_cols = set(feature_columns) - set(new_data_point.columns)
+    for c in missing_cols:
+        new_data_point[c] = 0
+    new_data_point = new_data_point[feature_columns]
+
+    # Scale the new data point
+    new_data_point_scaled = scaler.transform(new_data_point)
+
+    # Make prediction
+    predicted_condition_proba = model.predict_proba(new_data_point_scaled)[:, 1]
+    predicted_condition_label = label_encoder.inverse_transform(model.predict(new_data_point_scaled))
+
+    result_text = f"Predicted probability of 'Needs Maintenance': {predicted_condition_proba[0]:.4f}\n"
+    result_text += f"Predicted condition: {predicted_condition_label[0]}"
+    
+    log_output(result_text)
+    messagebox.showinfo("Prediction Result", result_text)
+
+
+# --- GUI Setup ---
+root = tk.Tk()
+root.title("Ambulance Predictive Maintenance")
+root.geometry("800x800")
+
+# Configure styles
+style = ttk.Style()
+style.configure("TFrame", background="#e0f2f7")
+style.configure("TButton", font=('Arial', 10), padding=5)
+style.configure("TLabel", font=('Arial', 10), background="#e0f2f7")
+style.configure("TEntry", font=('Arial', 10), padding=2)
+
+# --- Frame for Control Buttons ---
+control_frame = ttk.Frame(root, padding="10 10 10 10", relief="groove")
+control_frame.pack(side=tk.TOP, fill=tk.X, padx=10, pady=5)
+
+btn_generate_data = ttk.Button(control_frame, text="1. Generate Data", command=generate_data)
+btn_generate_data.pack(side=tk.LEFT, padx=5, pady=5)
+
+btn_train_model = ttk.Button(control_frame, text="2. Train Model", command=train_model)
+btn_train_model.pack(side=tk.LEFT, padx=5, pady=5)
+
+# --- Frame for Prediction Inputs ---
+input_frame = ttk.LabelFrame(root, text="3. Make Prediction - Enter Sensor Data", padding="10 10 10 10")
+input_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True, padx=10, pady=5)
+
+# Input fields using a grid layout
+labels_and_entries = [
+    ("Mileage:", "entry_mileage"),
+    ("Last Maint. Miles:", "entry_last_maintenance_miles"),
+    ("Engine Temp Avg:", "entry_engine_temp_avg"),
+    ("Oil Pressure Avg:", "entry_oil_pressure_avg"),
+    ("Battery Voltage Avg:", "entry_battery_voltage_avg"),
+    ("Tire Pressure FL:", "entry_tire_pressure_fl"),
+    ("Tire Pressure FR:", "entry_tire_pressure_fr"),
+    ("Tire Pressure RL:", "entry_tire_pressure_rl"),
+    ("Tire Pressure RR:", "entry_tire_pressure_rr"),
+    ("Brake Pad Wear Front:", "entry_brake_pad_wear_front"),
+    ("Brake Pad Wear Rear:", "entry_brake_pad_wear_rear"),
+    ("Engine RPM:", "entry_engine_rpm"),
+    ("Vibration Level:", "entry_vibration_level"),
+    ("Hour of Day (0-23):", "entry_hour_of_day"),
+    ("Day of Week (0=Mon):", "entry_day_of_week"),
+    ("Month (1-12):", "entry_month"),
+    ("Engine Temp Lag1:", "entry_engine_temp_avg_lag1"),
+    ("Oil Pressure Lag1:", "entry_oil_pressure_avg_lag1"),
+    ("Vibration Level Lag1:", "entry_vibration_level_lag1"),
+    ("Fault Code:", "combo_fault_code") # This will be a Combobox
+]
+
+# Create Entry widgets dynamically
+entry_widgets = {} # Dictionary to hold references to Entry widgets
+
+for i, (label_text, var_name) in enumerate(labels_and_entries):
+    row_num = i // 2
+    col_num = i % 2 * 2 # 0 or 2 for label, 1 or 3 for entry
+
+    label = ttk.Label(input_frame, text=label_text)
+    label.grid(row=row_num, column=col_num, padx=5, pady=2, sticky='w')
+
+    if var_name == "combo_fault_code":
+        combo_fault_code = ttk.Combobox(input_frame, values=FAULT_CODES, state="readonly")
+        combo_fault_code.set('None') # Default value
+        combo_fault_code.grid(row=row_num, column=col_num + 1, padx=5, pady=2, sticky='ew')
+        entry_widgets[var_name] = combo_fault_code # Store for later access
+    else:
+        entry = ttk.Entry(input_frame)
+        entry.grid(row=row_num, column=col_num + 1, padx=5, pady=2, sticky='ew')
+        entry_widgets[var_name] = entry # Store for later access
+        # Set some default values for easy testing (optional)
+        if var_name == "entry_mileage": entry.insert(0, "110000")
+        elif var_name == "entry_last_maintenance_miles": entry.insert(0, "16000")
+        elif var_name == "entry_engine_temp_avg": entry.insert(0, "100")
+        elif var_name == "entry_oil_pressure_avg": entry.insert(0, "38")
+        elif var_name == "entry_battery_voltage_avg": entry.insert(0, "12.1")
+        elif var_name == "entry_tire_pressure_fl": entry.insert(0, "32")
+        elif var_name == "entry_tire_pressure_fr": entry.insert(0, "33")
+        elif var_name == "entry_tire_pressure_rl": entry.insert(0, "34")
+        elif var_name == "entry_tire_pressure_rr": entry.insert(0, "33")
+        elif var_name == "entry_brake_pad_wear_front": entry.insert(0, "0.85")
+        elif var_name == "entry_brake_pad_wear_rear": entry.insert(0, "0.75")
+        elif var_name == "entry_engine_rpm": entry.insert(0, "2200")
+        elif var_name == "entry_vibration_level": entry.insert(0, "1.1")
+        elif var_name == "entry_hour_of_day": entry.insert(0, "10")
+        elif var_name == "entry_day_of_week": entry.insert(0, "3")
+        elif var_name == "entry_month": entry.insert(0, "7")
+        elif var_name == "entry_engine_temp_avg_lag1": entry.insert(0, "98")
+        elif var_name == "entry_oil_pressure_avg_lag1": entry.insert(0, "39")
+        elif var_name == "entry_vibration_level_lag1": entry.insert(0, "1.05")
+
+# Assign entry widgets to global names for easier access in predict_condition()
+entry_mileage = entry_widgets["entry_mileage"]
+entry_last_maintenance_miles = entry_widgets["entry_last_maintenance_miles"]
+entry_engine_temp_avg = entry_widgets["entry_engine_temp_avg"]
+entry_oil_pressure_avg = entry_widgets["entry_oil_pressure_avg"]
+entry_battery_voltage_avg = entry_widgets["entry_battery_voltage_avg"]
+entry_tire_pressure_fl = entry_widgets["entry_tire_pressure_fl"]
+entry_tire_pressure_fr = entry_widgets["entry_tire_pressure_fr"]
+entry_tire_pressure_rl = entry_widgets["entry_tire_pressure_rl"]
+entry_tire_pressure_rr = entry_widgets["entry_tire_pressure_rr"]
+entry_brake_pad_wear_front = entry_widgets["entry_brake_pad_wear_front"]
+entry_brake_pad_wear_rear = entry_widgets["entry_brake_pad_wear_rear"]
+entry_engine_rpm = entry_widgets["entry_engine_rpm"]
+entry_vibration_level = entry_widgets["entry_vibration_level"]
+entry_hour_of_day = entry_widgets["entry_hour_of_day"]
+entry_day_of_week = entry_widgets["entry_day_of_week"]
+entry_month = entry_widgets["entry_month"]
+entry_engine_temp_avg_lag1 = entry_widgets["entry_engine_temp_avg_lag1"]
+entry_oil_pressure_avg_lag1 = entry_widgets["entry_oil_pressure_avg_lag1"]
+entry_vibration_level_lag1 = entry_widgets["entry_vibration_level_lag1"]
+
+
+btn_predict = ttk.Button(input_frame, text="Predict Condition", command=predict_condition)
+btn_predict.grid(row=len(labels_and_entries) // 2 + 1, column=0, columnspan=4, pady=10) # Place below inputs
+
+# --- Frame for Output Log ---
+output_frame = ttk.LabelFrame(root, text="Output Log", padding="10 10 10 10")
+output_frame.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True, padx=10, pady=5)
+
+output_text = scrolledtext.ScrolledText(output_frame, wrap=tk.WORD, width=80, height=15, font=('Arial', 9))
+output_text.pack(expand=True, fill=tk.BOTH)
+
+root.mainloop() # Start the Tkinter event loop

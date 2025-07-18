@@ -88,8 +88,8 @@ Frontend:
 HTML,Tailwind CSS,JavaScript
 Backend & Data Science:
 Python,Pandas,NumPy,Scikit-learn,Joblib
-YOUTUBE DEMO LINK for patient outcome prediction:
 
+YOUTUBE DEMO LINK for patient outcome prediction:
 ----------------------------------------------------------------------------------------------------------------------------
 Team Members Details:
 Team Name: Ambunexus

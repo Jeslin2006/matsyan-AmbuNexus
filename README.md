@@ -88,7 +88,7 @@ Frontend:
 HTML,Tailwind CSS,JavaScript
 Backend & Data Science:
 Python,Pandas,NumPy,Scikit-learn,Joblib
-https://github.com/Jeslin2006/matsyan-AmbuNexus/blob/f206fe0fb83849600b6d5133da302fe5e48fd231/patient%20outcome%20prediction.jpeg
+![Uploading image.png…]()
 
 YOUTUBE DEMO LINK for patient outcome prediction:
 ----------------------------------------------------------------------------------------------------------------------------

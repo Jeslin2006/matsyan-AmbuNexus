@@ -1,4 +1,4 @@
-# matsyan-AmbuNexus
+<img width="1280" height="544" alt="image" src="https://github.com/user-attachments/assets/b7a6428e-2953-4ca1-8c40-81bd9fc09f88" /># matsyan-AmbuNexus
 PROJECT TITLE:
                                                         AMBUNEXUS: A Smart Ambulance System
 DESCRIPTION:
@@ -88,6 +88,7 @@ Frontend:
 HTML,Tailwind CSS,JavaScript
 Backend & Data Science:
 Python,Pandas,NumPy,Scikit-learn,Joblib
+
 
 YOUTUBE DEMO LINK for patient outcome prediction:
 ----------------------------------------------------------------------------------------------------------------------------

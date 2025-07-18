@@ -1,6 +1,6 @@
 
 PROJECT TITLE:
-                                                        AMBUNEXUS: A Smart Ambulance System
+                                AMBUNEXUS: A Smart Ambulance System
 DESCRIPTION:
 
 AmbuNexus is an AI-driven Smart Ambulance System designed to address critical issues in ambulance services like unpredictable vehicle breakdowns, traffic congestion, and poor patient-hospital coordination. The system features predictive maintenance, dynamic traffic-aware routing with signal control, and real-time patient data streaming. Its goal is to keep ambulances operational, expedite arrival times, and ensure hospitals are fully prepared for incoming patients.
@@ -88,6 +88,7 @@ Frontend:
 HTML,Tailwind CSS,JavaScript
 Backend & Data Science:
 Python,Pandas,NumPy,Scikit-learn,Joblib
+<img width="1280" height="544" alt="image" src="https://github.com/user-attachments/assets/f57405ba-94c3-4cae-abb1-07d44dece7de" />
 
 
 YOUTUBE DEMO LINK for patient outcome prediction:https://youtu.be/rXwhMDpgHvM?si=D-QMyqg0ezKa3l_x

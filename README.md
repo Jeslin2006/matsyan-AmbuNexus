@@ -12,6 +12,7 @@ This isn't just an inconvenience; it's a gap in the very chain of survival. With
 
 
  Our Model AmbuNexus has three Functionalities:
+ 
 1.Vehicle failure Predictive Maintenance
 2.Route optimization for the ambulance
 3.patient outcome prediction
@@ -46,6 +47,8 @@ Streamlit
 
 Cloud & Deployment:
 Cloud Healthcare
+<img width="1006" height="863" alt="image" src="https://github.com/user-attachments/assets/25391cf5-cf56-4812-a66c-b551a1d2d654" />
+
 
 YOUTUBE DEMO LINK for Vehicle failure Predictive Maintenance: https://youtu.be/1nedNJZCEAk
 -----------------------------------------------------------------------------------------------------------------------------

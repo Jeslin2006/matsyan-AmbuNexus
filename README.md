@@ -47,7 +47,7 @@ Streamlit
 Cloud & Deployment:
 Cloud Healthcare
 
-YOUTUBE DEMO LINK for Vehicle failure Predictive Maintenance:
+YOUTUBE DEMO LINK for Vehicle failure Predictive Maintenance: https://youtu.be/1nedNJZCEAk
 -----------------------------------------------------------------------------------------------------------------------------
 Instructions to set up the route optimization code:
 
@@ -66,7 +66,7 @@ Frontend & GUI:HTML,Tailwind CSS,JavaScript,Tkinter,Streamlit,
 Cloud & Deployment
 Cloud Healthcare
 
-YOUTUBE DEMO LINK for Route optimization for the ambulance
+YOUTUBE DEMO LINK for Route optimization for the ambulance:https://youtu.be/Km3N6-Srglo
 ----------------------------------------------------------------------------------------------------------------------------
 Installation and Setup Instructions for "3.patient outcome prediction":
 Step 1: Save the Code Files
@@ -88,9 +88,9 @@ Frontend:
 HTML,Tailwind CSS,JavaScript
 Backend & Data Science:
 Python,Pandas,NumPy,Scikit-learn,Joblib
-![Uploading image.png…]()
 
-YOUTUBE DEMO LINK for patient outcome prediction:
+
+YOUTUBE DEMO LINK for patient outcome prediction:https://youtu.be/rXwhMDpgHvM?si=D-QMyqg0ezKa3l_x
 ----------------------------------------------------------------------------------------------------------------------------
 Team Members Details:
 Team Name: Ambunexus
